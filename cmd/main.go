@@ -24,19 +24,22 @@ func main() {
 		log.Printf("Warning: .env file not found")
 	}
 
-	// 設置資料庫連接
-	var err error
-	db, err = sql.Open("mysql", os.Getenv("DB_CONNECTION"))
-	if err != nil {
-		log.Fatal("Error connecting to the database:", err)
-	}
-	defer db.Close()
+	// 確認是否需要資料庫
+	skipDB := os.Getenv("SKIP_DB") == "true"
+	if !skipDB {
+		// 設置資料庫連接
+		var err error
+		db, err = sql.Open("mysql", os.Getenv("DB_CONNECTION"))
+		if err != nil {
+			log.Fatal("Error connecting to the database:", err)
+		}
+		defer db.Close()
 
-	// 測試資料庫連接
-	if err = db.Ping(); err != nil {
-		log.Fatal("Error pinging the database:", err)
+		// 測試資料庫連接
+		if err = db.Ping(); err != nil {
+			log.Fatal("Error pinging the database:", err)
+		}
 	}
-
 	// 初始化handlers
 	handlers.Init(db)
 

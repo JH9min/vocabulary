@@ -37,6 +37,30 @@ func Login(c *gin.Context) {
 	password := c.PostForm("password")
 	log.Println("📌 Received Login Request - Username:", username, "Password:", password)
 
+	// 開發模式 直接登入
+	if os.Getenv("SKIP_DB") == "true" &&
+		username == os.Getenv("TEST_USER") &&
+		password == os.Getenv("TEST_PASSWORD") {
+
+		// 生成測試 JWT token
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id": 1,
+			"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		})
+		tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "login.html", gin.H{
+				"error": "Error generating token",
+			})
+			return
+		}
+
+		c.SetCookie("token", tokenString, 3600*24, "/", "", false, true)
+		c.Redirect(http.StatusFound, "/news")
+		return
+	}
+
+	// 正式模式 檢查用戶名是否存在
 	user, err := models.GetUserByUsername(db, username)
 	if err != nil {
 		c.HTML(http.StatusBadRequest, "login.html", gin.H{
