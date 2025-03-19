@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"os"
 	"strconv"
 	"vocabulary/internal/models"
 
@@ -18,6 +19,30 @@ func StartTest(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// 檢查是否為測試環境
+	if os.Getenv("SKIP_DB") == "true" {
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"words": []gin.H{
+				{
+					"id":     1,
+					"word":   "example",
+					"tested": false,
+					"Definitions": []models.VocabularyDefinition{
+						{
+							ID:           1,
+							VocabularyID: 1,
+							PartOfSpeech: "noun",
+							Definition:   "a representative form or pattern",
+							Example:      "This is an example of a test word.",
+						},
+					},
+				},
+			},
+		})
 		return
 	}
 
@@ -64,6 +89,12 @@ func SaveTestResult(c *gin.Context) {
 	wordIDStr := c.PostForm("word_id")
 	if wordIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Word ID is required"})
+		return
+	}
+
+	// 檢查是否為測試環境
+	if os.Getenv("SKIP_DB") == "true" {
+		c.JSON(http.StatusOK, gin.H{"success": true})
 		return
 	}
 

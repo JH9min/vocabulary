@@ -16,6 +16,7 @@ func ShowNewsReader(c *gin.Context) {
 }
 
 func FetchNews(c *gin.Context) {
+	// 實際的新聞獲取邏輯
 	url := c.PostForm("url")
 	if url == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "URL is required"})

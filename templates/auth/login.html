@@ -84,13 +84,7 @@
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div>
-            <a href="/news">News</a>
-            <a href="/vocabulary">Vocabulary</a>
-            <a href="/flashcards">Flashcards</a>
-        </div>
-    </div>
+    {{ template "components/navbar.html" . }}
     
     <div class="content">
         <div class="auth-container">
