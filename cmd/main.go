@@ -130,6 +130,8 @@ func setupRoutes(r *gin.Engine) {
 		authorized.POST("/vocabulary/lookup", handlers.LookupWord)
 		authorized.POST("/vocabulary/save", handlers.SaveWord)
 		authorized.DELETE("/vocabulary/:id", handlers.DeleteWord)
+		authorized.GET("/vocabulary/:id", handlers.GetVocabulary)
+		authorized.PUT("/vocabulary/:id", handlers.UpdateVocabulary)
 
 		// 單字卡測驗
 		authorized.GET("/flashcards", handlers.ShowFlashcards)

@@ -46,8 +46,7 @@ func StartTest(c *gin.Context) {
 		return
 	}
 
-	user := &models.User{ID: userID.(int64)}
-	vocabularies, err := user.GetVocabularies(db)
+	vocabularies, err := models.GetByUserID(db, userID.(int64))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error fetching vocabularies"})
 		return
@@ -107,10 +106,20 @@ func SaveTestResult(c *gin.Context) {
 	testedStr := c.PostForm("tested")
 	tested := testedStr == "true"
 
-	user := &models.User{ID: userID.(int64)}
-	if err := user.UpdateTestedStatus(db, wordID, tested); err != nil {
+	// 獲取單字
+	vocabulary := &models.Vocabulary{ID: wordID, UserID: userID.(int64)}
+	if err := vocabulary.UpdateTestedStatus(db, tested); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error updating word status"})
 		return
+	}
+
+	// 如果需要，保存測試結果
+	if tested {
+		user := &models.User{ID: userID.(int64)}
+		if err := user.SaveTestResult(db, wordIDStr, true); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving test result"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"success": true})

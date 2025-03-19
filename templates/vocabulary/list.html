@@ -115,6 +115,74 @@
         .action-btn:hover {
             opacity: 0.9;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: relative;
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 10px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        .definition-list {
+            margin-bottom: 15px;
+        }
+        .remove-definition {
+            float: right;
+            color: #dc3545;
+            cursor: pointer;
+        }
+        .add-definition {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .add-definition:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -180,5 +248,178 @@
             </div>
         {{end}}
     </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Edit Word</h2>
+            <form id="editForm" onsubmit="saveEdit(event)">
+                <input type="hidden" id="wordId" name="wordId">
+                <div class="form-group">
+                    <label for="word">Word:</label>
+                    <input type="text" id="word" name="word" required>
+                </div>
+                <div class="definition-list" id="definitionList">
+                    <!-- Definitions will be added here dynamically -->
+                </div>
+                <button type="button" class="add-definition" onclick="addDefinition()">Add Definition</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function editWord(id) {
+            // Fetch word details
+            fetch(`/vocabulary/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('wordId').value = id;
+                    document.getElementById('word').value = data.word;
+                    
+                    // Clear and populate definitions
+                    const definitionList = document.getElementById('definitionList');
+                    definitionList.innerHTML = '';
+                    
+                    // Add each definition with its part of speech and example
+                    data.definitions.forEach((def, index) => {
+                        addDefinition(def, index);
+                    });
+                    
+                    // Show modal
+                    document.getElementById('editModal').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error fetching word details');
+                });
+        }
+
+        function addDefinition(definition = null, index = null) {
+            const definitionList = document.getElementById('definitionList');
+            const div = document.createElement('div');
+            div.className = 'definition-item';
+            
+            // Part of Speech input
+            const posInput = document.createElement('input');
+            posInput.type = 'text';
+            posInput.name = `definitions[${index || definitionList.children.length}][partOfSpeech]`;
+            posInput.placeholder = 'Part of Speech';
+            posInput.value = definition ? definition.partOfSpeech : '';
+            posInput.style.width = 'calc(100% - 30px)';
+            posInput.style.marginBottom = '5px';
+            
+            // Definition input
+            const defInput = document.createElement('textarea');
+            defInput.name = `definitions[${index || definitionList.children.length}][definition]`;
+            defInput.placeholder = 'Enter definition';
+            defInput.value = definition ? definition.definition : '';
+            defInput.style.width = 'calc(100% - 30px)';
+            defInput.style.marginBottom = '5px';
+            
+            // Example input
+            const exInput = document.createElement('textarea');
+            exInput.name = `definitions[${index || definitionList.children.length}][example]`;
+            exInput.placeholder = 'Enter example';
+            exInput.value = definition ? definition.example : '';
+            exInput.style.width = 'calc(100% - 30px)';
+            exInput.style.marginBottom = '5px';
+            
+            const removeButton = document.createElement('span');
+            removeButton.className = 'remove-definition';
+            removeButton.innerHTML = '&times;';
+            removeButton.onclick = function() {
+                div.remove();
+            };
+            
+            div.appendChild(posInput);
+            div.appendChild(defInput);
+            div.appendChild(exInput);
+            div.appendChild(removeButton);
+            definitionList.appendChild(div);
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function deleteWord(id) {
+            if (confirm('確定要刪除這個單字嗎？')) {
+                fetch(`/vocabulary/${id}`, {
+                    method: 'DELETE',
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error deleting word: ' + (result.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting word');
+                });
+            }
+        }
+
+        function saveEdit(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const data = {
+                word: formData.get('word'),
+                definitions: []
+            };
+            
+            // Collect all definitions
+            const definitionList = document.getElementById('definitionList');
+            const definitionItems = definitionList.getElementsByClassName('definition-item');
+            
+            for (let i = 0; i < definitionItems.length; i++) {
+                const item = definitionItems[i];
+                const partOfSpeech = item.querySelector(`input[name^="definitions"][name$="[partOfSpeech]"]`).value;
+                const definition = item.querySelector(`textarea[name^="definitions"][name$="[definition]"]`).value;
+                const example = item.querySelector(`textarea[name^="definitions"][name$="[example]"]`).value;
+                
+                if (partOfSpeech && definition) {
+                    data.definitions.push({
+                        partOfSpeech: partOfSpeech,
+                        definition: definition,
+                        example: example
+                    });
+                }
+            }
+            
+            fetch(`/vocabulary/${formData.get('wordId')}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error updating word: ' + (result.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating word');
+            });
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
 </body>
 </html>
