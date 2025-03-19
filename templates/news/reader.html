@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Reader</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        .navbar {
+            background-color: #333;
+            padding: 1rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .container {
+            display: flex;
+            height: calc(100vh - 60px); /* Subtract navbar height */
+        }
+        .news-section {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #ccc;
+        }
+        .word-section {
+            width: 350px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            overflow-y: auto;
+        }
+        .url-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        #newsContent {
+            line-height: 1.6;
+            padding: 20px;
+        }
+        #newsContent p {
+            margin-bottom: 1.2em;
+            text-align: justify;
+        }
+        #wordInfo {
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .word-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #28a745;
+            padding-bottom: 5px;
+        }
+        .word-status {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 15px;
+            padding: 5px 10px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+        }
+        .definition-item {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .part-of-speech {
+            color: #666;
+            font-style: italic;
+            margin: 10px 0 5px 0;
+        }
+        .definition-text {
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .example {
+            color: #666;
+            margin-left: 15px;
+            font-style: italic;
+            border-left: 3px solid #28a745;
+            padding-left: 10px;
+            margin-top: 5px;
+        }
+        .add-word-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            font-size: 1em;
+            transition: background-color 0.2s;
+        }
+        .add-word-btn:hover {
+            background-color: #218838;
+        }
+        .add-word-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .word-exists {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            color: #495057;
+        }
+        .tested-status {
+            font-size: 0.9em;
+            color: #28a745;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div>
+            <a href="/news">News</a>
+            <a href="/vocabulary">Vocabulary</a>
+            <a href="/flashcards">Flashcards</a>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="container">
+        <div class="news-section">
+            <input type="text" id="newsUrl" class="url-input" placeholder="Enter news URL">
+            <button onclick="fetchNews()">Fetch News</button>
+            <div id="newsContent"></div>
+        </div>
+        
+        <div class="word-section">
+            <h3>Word Lookup</h3>
+            <div id="wordInfo">
+                <p>Select a word from the article to see its definition here.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 將事件監聽器綁定到新聞內容區域，而不是整個文檔
+        document.getElementById('newsContent').addEventListener('mouseup', function(event) {
+            // 確保事件是從新聞內容區域觸發的
+            if (event.target.closest('#newsContent')) {
+                const selectedText = window.getSelection().toString().trim();
+                if (isValidWord(selectedText)) {
+                    lookupWord(selectedText);
+                }
+            }
+        });
+
+        function isValidWord(text) {
+            return /^[a-zA-Z-]+$/.test(text) && text.length > 0;
+        }
+
+        function lookupWord(word) {
+            fetch('/vocabulary/lookup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `word=${encodeURIComponent(word.toLowerCase())}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const wordInfo = document.getElementById('wordInfo');
+                let html = `<div class="word-title">${word}</div>`;
+
+                if (data.error) {
+                    // 如果有錯誤
+                    html += `<div class="word-status">Error: ${data.error}</div>`;
+                } else if (data.exists) {
+                    // 顯示所有定義
+                    data.definitions.forEach(def => {
+                        html += `
+                        <div class="definition-item">
+                            <div class="part-of-speech">${def.partOfSpeech}</div>
+                            <div class="definition-text">${def.definition}</div>
+                            ${def.example ? `<div class="example">"${def.example}"</div>` : ''}
+                        </div>`;
+                    });
+                    
+                    // 如果單字已存在，顯示現有定義
+                    html += `<div class="word-exists">This word is already in your vocabulary</div>`;
+                    
+                    html += `
+                        <div class="tested-status">
+                            ${data.tested ? '✓ You have tested this word' : '○ Not tested yet'}
+                        </div>`;
+                } else {
+                    // 顯示從API獲取的定義
+                    data.definitions.forEach(def => {
+                        html += `
+                            <div class="definition-item">
+                                <div class="part-of-speech">${def.partOfSpeech}</div>
+                                <div class="definition-text">${def.definition}</div>
+                                ${def.example ? `<div class="example">"${def.example}"</div>` : ''}
+                            </div>`;
+                    });
+
+                    // 添加"加入詞彙"按鈕，傳遞所有定義
+                    html += `
+                        <button class="add-word-btn" onclick='saveWord("${word}", ${JSON.stringify(data.definitions)})'>
+                            Add to Vocabulary
+                        </button>`;
+                }
+
+                wordInfo.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('wordInfo').innerHTML = `
+                    <div class="word-title">${word}</div>
+                    <div class="word-status">Error looking up word.</div>`;
+            });
+        }
+
+        function saveWord(word, definitions) {
+            // 確保 definitions 是一個數組
+            if (!Array.isArray(definitions)) {
+                console.error('Definitions must be an array');
+                return;
+            }
+
+            // 創建一個新的數組，只包含需要的字段
+            const cleanDefinitions = definitions.map(def => ({
+                partOfSpeech: def.partOfSpeech || '',
+                definition: def.definition || '',
+                example: def.example || ''
+            }));
+
+            fetch('/vocabulary/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `word=${encodeURIComponent(word)}&definitions=${encodeURIComponent(JSON.stringify(cleanDefinitions))}`
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.error) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'word-status';
+                    errorDiv.textContent = result.error;
+                    document.querySelector('.add-word-btn').insertAdjacentElement('beforebegin', errorDiv);
+                } else {
+                    // 顯示保存成功信息
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'word-status';
+                    successDiv.style.backgroundColor = '#d4edda';
+                    successDiv.style.color = '#155724';
+                    successDiv.style.border = '1px solid #c3e6cb';
+                    
+                    let message = `單字 "${word}" 已成功保存！`;
+                    if (result.total_definitions > 5) {
+                        message += `\n注意：由於定義數量較多，系統已自動選擇前 5 個最常用的定義保存。`;
+                    }
+                    successDiv.textContent = message;
+                    
+                    document.querySelector('.add-word-btn').insertAdjacentElement('beforebegin', successDiv);
+                    
+                    // 重新查詢單字以更新顯示
+                    lookupWord(word);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'word-status';
+                errorDiv.textContent = 'Error saving word.';
+                document.querySelector('.add-word-btn').insertAdjacentElement('beforebegin', errorDiv);
+            });
+        }
+
+        function fetchNews() {
+            const url = document.getElementById('newsUrl').value;
+            fetch('/news/fetch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `url=${encodeURIComponent(url)}`
+            })
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('newsContent').innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('newsContent').innerHTML = '<p>Error fetching news content.</p>';
+            });
+        }
+
+        function logout() {
+            fetch('/logout', {
+                method: 'POST',
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                window.location.href = '/login';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error logging out.');
+            });
+        }
+    </script>
+</body>
+</html> 

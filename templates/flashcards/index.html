@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar {
+            background-color: #333;
+            padding: 1rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: calc(100vh - 60px);
+        }
+        .start-section {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        .start-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.2em;
+            margin-top: 20px;
+            transition: background-color 0.2s;
+        }
+        .start-btn:hover {
+            background-color: #218838;
+        }
+        .start-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .flashcard-container {
+            display: none;
+            width: 100%;
+        }
+        .content {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+        .word-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 726px;
+            min-height: 322px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+        .word-card:hover {
+            transform: translateY(-5px);
+        }
+        .word-card.flipped {
+            transform: rotateY(180deg);
+        }
+        .word-card-front {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            min-height: 322px;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            background: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .word-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            min-height: 322px;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding: 20px;
+            box-sizing: border-box;
+            background: white;
+            border-radius: 8px;
+            transform: rotateY(180deg);
+            overflow-y: auto;
+            text-align: left;
+        }
+        .word {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            width: 100%;
+            text-align: center;
+        }
+        .definition {
+            font-size: 1.1em;
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.6;
+            width: 100%;
+        }
+        .part-of-speech {
+            color: #666;
+            font-style: italic;
+            font-size: 1em;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        .example {
+            color: #666;
+            font-style: italic;
+            font-size: 1em;
+            margin-top: 8px;
+            padding-left: 10px;
+            border-left: 2px solid #28a745;
+            line-height: 1.6;
+            width: 100%;
+        }
+        .definition-item {
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 2px solid #dee2e6;
+            width: 100%;
+        }
+        .definition-item:last-child {
+            margin-bottom: 0;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .control-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+        .prev-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        .prev-btn:hover {
+            background-color: #5a6268;
+        }
+        .review-btn {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .review-btn:hover {
+            background-color: #e0a800;
+        }
+        .learned-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .learned-btn:hover {
+            background-color: #218838;
+        }
+        .progress {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .empty-message {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div>
+            <a href="/news">News</a>
+            <a href="/vocabulary">Vocabulary</a>
+            <a href="/flashcards">Flashcards</a>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="container">
+        <div class="start-section">
+            <h2>Flashcards</h2>
+            <p>Test your vocabulary knowledge with flashcards!</p>
+            <button class="start-btn" onclick="startTest()">Start Flashcards</button>
+        </div>
+
+        <div class="flashcard-container" id="flashcardContainer">
+            <div class="content">
+                <div class="progress" id="progress"></div>
+                <div class="word-card" id="flashcard" onclick="flipCard()">
+                    <div class="word-card-front">
+                        <div class="word" id="word"></div>
+                    </div>
+                    <div class="word-card-back">
+                        <div id="definitions"></div>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button class="control-btn prev-btn" onclick="prevCard()">Previous</button>
+                    <button class="control-btn review-btn" onclick="updateTestedStatus(false)">Review</button>
+                    <button class="control-btn learned-btn" onclick="updateTestedStatus(true)">Learned</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let words = [];
+        let currentIndex = 0;
+        let isFlipped = false;
+
+        function startTest() {
+            console.log('Starting flashcards test...');
+            fetch('/flashcards/test', {
+                method: 'GET',
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received data:', data);
+                if (data.success && data.words && data.words.length > 0) {
+                    words = data.words;
+                    console.log('Words loaded:', words);
+                    currentIndex = 0;
+                    document.querySelector('.start-section').style.display = 'none';
+                    document.querySelector('.flashcard-container').style.display = 'block';
+                    showCard(currentIndex);
+                } else {
+                    console.error('No words available:', data.error);
+                    alert(data.error || 'No words in your vocabulary');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error starting flashcards: ' + error.message);
+            });
+        }
+
+        function showCard(index) {
+            console.log('Showing card at index:', index);
+            if (index < 0 || index >= words.length) {
+                console.log('Invalid index:', index);
+                return;
+            }
+            
+            const word = words[index];
+            if (!word) {
+                console.log('No word at index:', index);
+                return;
+            }
+
+            console.log('Current word:', word);
+            currentIndex = index;
+            isFlipped = false;
+            
+            // 設置正面（單字）
+            document.getElementById('word').textContent = word.word;
+            
+            // 設置背面（所有定義）
+            const definitionsContainer = document.getElementById('definitions');
+            definitionsContainer.innerHTML = ''; // 清空現有內容
+            
+            if (word.Definitions && word.Definitions.length > 0) {
+                word.Definitions.forEach(function(def) {
+                    const defItem = document.createElement('div');
+                    defItem.className = 'definition-item';
+                    defItem.innerHTML = 
+                        '<div class="part-of-speech">' + (def.PartOfSpeech || '') + '</div>' +
+                        '<div class="definition">' + (def.Definition || '') + '</div>' +
+                        (def.Example ? '<div class="example">' + def.Example + '</div>' : '');
+                    definitionsContainer.appendChild(defItem);
+                });
+            } else {
+                const defItem = document.createElement('div');
+                defItem.className = 'definition-item';
+                defItem.innerHTML = '<div class="definition">No definition available</div>';
+                definitionsContainer.appendChild(defItem);
+            }
+            
+            document.getElementById('progress').textContent = `Card ${index + 1} of ${words.length}`;
+            
+            // 重置卡片樣式
+            const flashcard = document.getElementById('flashcard');
+            flashcard.classList.remove('flipped');
+        }
+
+        function flipCard() {
+            isFlipped = !isFlipped;
+            const flashcard = document.getElementById('flashcard');
+            flashcard.classList.toggle('flipped');
+        }
+
+        function updateTestedStatus(tested) {
+            const word = words[currentIndex];
+            if (!word) return;
+
+            fetch('/flashcards/result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `word_id=${encodeURIComponent(word.id)}&tested=${tested}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    word.tested = tested;
+                    if (currentIndex < words.length - 1) {
+                        showCard(currentIndex + 1);
+                    } else {
+                        alert('You have completed all flashcards!');
+                        window.location.href = '/vocabulary';
+                    }
+                } else {
+                    alert('Error updating word status: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating word status');
+            });
+        }
+
+        function prevCard() {
+            if (currentIndex > 0) {
+                showCard(currentIndex - 1);
+            }
+        }
+
+        // 支援鍵盤操作
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowLeft') {
+                prevCard();
+            } else if (event.key === 'ArrowRight' || event.key === ' ') {
+                if (isFlipped) {
+                    updateTestedStatus(true);
+                } else {
+                    flipCard();
+                }
+            }
+        });
+
+        function logout() {
+            fetch('/logout', {
+                method: 'POST',
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                window.location.href = '/login';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error logging out');
+            });
+        }
+    </script>
+</body>
+</html>

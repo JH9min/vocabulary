@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Vocabulary</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .navbar {
+            background-color: #333;
+            padding: 1rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .content {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .word-card {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #007bff;
+        }
+        .word-card.learned {
+            border-left-color: #28a745;
+        }
+        .word-card.review {
+            border-left-color: #ffc107;
+        }
+        .word-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .word {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        .word-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .status-learned {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-review {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .definition-item {
+            margin-bottom: 10px;
+            padding-left: 10px;
+            border-left: 2px solid #dee2e6;
+        }
+        .part-of-speech {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 5px;
+        }
+        .definition-text {
+            margin-bottom: 5px;
+        }
+        .example {
+            color: #666;
+            font-style: italic;
+            margin-top: 5px;
+            padding-left: 10px;
+            border-left: 2px solid #28a745;
+        }
+        .empty-message {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .action-btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div>
+            <a href="/news">News</a>
+            <a href="/vocabulary">Vocabulary</a>
+            <a href="/flashcards">Flashcards</a>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+    
+    <div class="content">
+        {{if .vocabularies}}
+            <div class="section">
+                <h2 class="section-title">已學習的單字</h2>
+                {{range .vocabularies}}
+                    {{if .Tested}}
+                        <div class="word-card learned">
+                            <div class="word-header">
+                                <div class="word">{{.Word}}</div>
+                                <span class="word-status status-learned">已學習</span>
+                            </div>
+                            {{range .Definitions}}
+                                <div class="definition-item">
+                                    <div class="part-of-speech">{{.PartOfSpeech}}</div>
+                                    <div class="definition-text">{{.Definition}}</div>
+                                    {{if .Example}}
+                                        <div class="example">"{{.Example}}"</div>
+                                    {{end}}
+                                </div>
+                            {{end}}
+                            <div class="actions">
+                                <button class="action-btn edit-btn" onclick="editWord({{.ID}})">編輯</button>
+                                <button class="action-btn delete-btn" onclick="deleteWord({{.ID}})">刪除</button>
+                            </div>
+                        </div>
+                    {{end}}
+                {{end}}
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">需要複習的單字</h2>
+                {{range .vocabularies}}
+                    {{if not .Tested}}
+                        <div class="word-card review">
+                            <div class="word-header">
+                                <div class="word">{{.Word}}</div>
+                                <span class="word-status status-review">需要複習</span>
+                            </div>
+                            {{range .Definitions}}
+                                <div class="definition-item">
+                                    <div class="part-of-speech">{{.PartOfSpeech}}</div>
+                                    <div class="definition-text">{{.Definition}}</div>
+                                    {{if .Example}}
+                                        <div class="example">"{{.Example}}"</div>
+                                    {{end}}
+                                </div>
+                            {{end}}
+                            <div class="actions">
+                                <button class="action-btn edit-btn" onclick="editWord({{.ID}})">編輯</button>
+                                <button class="action-btn delete-btn" onclick="deleteWord({{.ID}})">刪除</button>
+                            </div>
+                        </div>
+                    {{end}}
+                {{end}}
+            </div>
+        {{else}}
+            <div class="empty-message">
+                <p>您還沒有添加任何單字到詞彙表中。</p>
+            </div>
+        {{end}}
+    </div>
+
+    <script>
+        function editWord(id) {
+            // TODO: 實現編輯功能
+            alert('編輯功能即將推出');
+        }
+
+        function deleteWord(id) {
+            if (confirm('確定要刪除這個單字嗎？')) {
+                fetch(`/vocabulary/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('刪除失敗：' + (data.error || '未知錯誤'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('刪除失敗');
+                });
+            }
+        }
+
+        function logout() {
+            fetch('/logout', {
+                method: 'POST',
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                window.location.href = '/login';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('登出失敗');
+            });
+        }
+    </script>
+</body>
+</html> 
