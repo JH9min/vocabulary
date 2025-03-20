@@ -20,17 +20,25 @@ import (
 var db *sql.DB
 
 func main() {
-	// 載入環境變數
-	if err := godotenv.Load(); err != nil {
-		log.Printf("Warning: .env file not found")
+	// 嘗試載入 .env 檔案
+	envPath := getEnvPath()
+	if err := godotenv.Load(envPath); err != nil {
+		log.Printf("Warning: .env file not found at %s", envPath)
 	}
 
 	// 確認是否需要資料庫
 	skipDB := os.Getenv("SKIP_DB") == "true"
 	if !skipDB {
+		// 根據環境選擇資料庫連線字串
+		dbConn := os.Getenv("DB_CONNECTION_LOCAL") // 預設本地
+		if os.Getenv("DOCKER_ENV") == "true" {     // 如果是在 Docker 內部執行
+			dbConn = os.Getenv("DB_CONNECTION_DOCKER")
+		}
+		log.Println("Using DB Connection:", dbConn)
+
 		// 設置資料庫連接
 		var err error
-		db, err = sql.Open("mysql", os.Getenv("DB_CONNECTION"))
+		db, err = sql.Open("mysql", dbConn)
 		if err != nil {
 			log.Fatal("Error connecting to the database:", err)
 		}
@@ -41,10 +49,10 @@ func main() {
 			log.Fatal("Error pinging the database:", err)
 		}
 	}
-	// 初始化handlers
+	// 初始化 handlers
 	handlers.Init(db)
 
-	// 初始化Gin路由
+	// 初始化 Gin 路由
 	r := gin.Default()
 
 	// 設置 session middleware
@@ -58,7 +66,7 @@ func main() {
 		log.Fatal("Error getting working directory:", err)
 	}
 
-	// 載入所有HTML模板，包括子目錄
+	// 載入所有 HTML 模板，包括子目錄
 	templatesDir := filepath.Join(wd, "templates")
 	r.LoadHTMLGlob(filepath.Join(templatesDir, "*/*.html"))
 
@@ -76,6 +84,19 @@ func main() {
 	r.Run(":" + port)
 }
 
+// 取得正確的 .env 路徑
+func getEnvPath() string {
+	// 預設環境變數位置
+	envPath := "../../.env" // 適用於 `backend/cmd/main.go` 執行時
+
+	// 如果是 Docker 環境，則使用 `/app/.env`
+	if os.Getenv("DOCKER_ENV") == "true" {
+		envPath = "/app/.env"
+	}
+	return envPath
+}
+
+// 測試環境的 Middleware
 func testEnvironmentMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if os.Getenv("SKIP_DB") == "true" {
@@ -103,13 +124,16 @@ func testEnvironmentMiddleware() gin.HandlerFunc {
 	}
 }
 
+// 設置路由
 func setupRoutes(r *gin.Engine) {
 	// 添加測試環境中間件
 	r.Use(testEnvironmentMiddleware())
+
 	// 首頁重定向到登入頁面
 	r.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/login")
 	})
+
 	// 公開路由
 	r.GET("/login", handlers.ShowLogin)
 	r.POST("/login", handlers.Login)

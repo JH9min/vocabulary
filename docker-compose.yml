@@ -1,17 +1,54 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  mysql:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env  # 讓後端讀取 .env
+    environment: 
+      - DOCKER_ENV=true  # 告訴後端應用在 Docker 環境中
+      - DB_CONNECTION_DOCKER=${DB_USER}:${DB_PASSWORD}@tcp(database:${DB_PORT})/${DB_NAME}?parseTime=true
+    depends_on:
+      database:
+        condition: service_healthy  # ✅ 讓後端等 MySQL 完全啟動後才啟動
+    volumes:
+      - ./backend/templates:/app/templates  # 確保模板可更新
+      - ./backend/static:/app/static        # 確保靜態文件可更新
+      - ./.env:/app/.env  # ✅ 確保 .env 被掛載
+    networks:
+      - vocab_network
+
+  database:
     image: mysql:8.0
-    container_name: vocabulary_mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: vocabulary_db
+    restart: always
     ports:
       - "3306:3306"
+    env_file:
+      - .env
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
     volumes:
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - mysql_data:/var/lib/mysql
+      - vocab_data:/var/lib/mysql
+    networks:
+      - vocab_network
+    healthcheck:  # ✅ 健康檢查，確保 MySQL 啟動後才啟動後端
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      start_period: 20s
+      timeout: 5s
 
 volumes:
-  mysql_data: 
+  vocab_data:
+    driver: local
+
+networks:
+  vocab_network:
+    driver: bridge
