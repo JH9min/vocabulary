@@ -381,7 +381,8 @@
                 const item = definitionItems[i];
                 const partOfSpeech = item.querySelector(`input[name^="definitions"][name$="[partOfSpeech]"]`).value;
                 const definition = item.querySelector(`textarea[name^="definitions"][name$="[definition]"]`).value;
-                const example = item.querySelector(`textarea[name^="definitions"][name$="[example]"]`).value;
+                const example = item.querySelector(`textarea[name^="definitions"][name$="[example]"]`).value
+                    .replace(/&quot;/g, '"');
                 
                 if (partOfSpeech && definition) {
                     data.definitions.push({

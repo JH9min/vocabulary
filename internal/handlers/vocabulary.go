@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"vocabulary/internal/models"
 
 	"github.com/gin-gonic/gin"
@@ -245,10 +246,19 @@ func SaveWord(c *gin.Context) {
 	// 轉換定義格式
 	var vocabDefinitions []models.VocabularyDefinition
 	for _, def := range definitions {
+		// 處理例句中的引號
+		example := def["example"]
+		if example != "" {
+			// 移除開頭和結尾的引號（如果有的話）
+			example = strings.Trim(example, "\"")
+			// 將內部引號轉換為 HTML 實體
+			example = strings.ReplaceAll(example, "\"", "&quot;")
+		}
+
 		vocabDef := models.VocabularyDefinition{
 			PartOfSpeech: def["partOfSpeech"],
 			Definition:   def["definition"],
-			Example:      def["example"],
+			Example:      example,
 		}
 		vocabDefinitions = append(vocabDefinitions, vocabDef)
 	}

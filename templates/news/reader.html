@@ -203,7 +203,7 @@
                         <div class="definition-item">
                             <div class="part-of-speech">${def.partOfSpeech}</div>
                             <div class="definition-text">${def.definition}</div>
-                            ${def.example ? `<div class="example">"${def.example}"</div>` : ''}
+                            ${def.example ? `<div class="example">"${def.example.replace(/&quot;/g, '"')}"</div>` : ''}
                         </div>`;
                     });
                     
@@ -221,13 +221,18 @@
                             <div class="definition-item">
                                 <div class="part-of-speech">${def.partOfSpeech}</div>
                                 <div class="definition-text">${def.definition}</div>
-                                ${def.example ? `<div class="example">"${def.example}"</div>` : ''}
+                                ${def.example ? `<div class="example">"${def.example.replace(/&quot;/g, '"')}"</div>` : ''}
                             </div>`;
                     });
 
                     // 添加"加入詞彙"按鈕，傳遞所有定義
+                    const safeWord = word.replace(/"/g, '&quot;');
+                    const safeDefinitions = JSON.stringify(data.definitions).replace(/"/g, '&quot;');
                     html += `
-                        <button class="add-word-btn" onclick='saveWord("${word}", ${JSON.stringify(data.definitions)})'>
+                        <button class="add-word-btn" 
+                                data-word="${safeWord}" 
+                                data-definitions="${safeDefinitions}"
+                                onclick="handleSaveWord(this)">
                             Add to Vocabulary
                         </button>`;
                 }
@@ -240,6 +245,12 @@
                     <div class="word-title">${word}</div>
                     <div class="word-status">Error looking up word.</div>`;
             });
+        }
+
+        function handleSaveWord(button) {
+            const word = button.getAttribute('data-word');
+            const definitions = JSON.parse(button.getAttribute('data-definitions').replace(/&quot;/g, '"'));
+            saveWord(word, definitions);
         }
 
         function saveWord(word, definitions) {
